@@ -1,0 +1,33 @@
+module avail
+module load compiler/gcc/7.1.0/compilervars
+
+
+--------------------------------------
+Normal
+Time taken for Jacobi: 0.064096
+Time taken: 1.454112
+
+Time taken for Jacobi: 32221.878906
+Time taken: 37402.906250
+--------------------------------------
+O3
+Time taken for Jacobi: 0.043776
+Time taken: 0.742752
+
+Time taken for Jacobi: 30556.710938
+Time taken: 31536.001953
+--------------------------------------
+Cuda
+Time taken for Jacobi: 0.063328
+Time taken: 2.857056
+
+Time taken for Jacobi: 32011.033203
+Time taken: 32065.736328
+--------------------------------------
+Cuda with O3
+Time taken for Jacobi: 0.048000
+Time taken: 2.510336
+
+Time taken for Jacobi: 30556.412109
+Time taken: 30605.181641
+
