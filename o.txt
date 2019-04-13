@@ -1,7 +1,6 @@
 module avail
 module load compiler/gcc/7.1.0/compilervars
 
-
 --------------------------------------
 Normal
 Time taken for Jacobi: 0.064096
