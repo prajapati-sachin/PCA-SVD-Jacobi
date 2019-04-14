@@ -42,7 +42,7 @@ void read_file(char* filename, int num_samples, int num_features, double** A) {
     ifile.close();
 }
 
-double* mat_transpose(double* A, int Am, int An) {
+__attribute__((optimize("-O3"))) double* mat_transpose(double* A, int Am, int An) {
     double *B;
     B = (double*)malloc(__SIZEOF_DOUBLE__*An*Am);
     // B = (double**)malloc(__SIZEOF_POINTER__*An);
@@ -58,7 +58,7 @@ double* mat_transpose(double* A, int Am, int An) {
     return B;
 }
 
-double** mat_mul(double** A, int Am, int An, 
+__attribute__((optimize("-O3"))) double** mat_mul(double** A, int Am, int An, 
                  double** B, int Bm, int Bn){
     double **C;
     C = (double**)malloc(__SIZEOF_POINTER__*Am);
@@ -78,7 +78,7 @@ double** mat_mul(double** A, int Am, int An,
 }
 
 
-double* new_mat_mul(double* A, int Am, int An, 
+__attribute__((optimize("-O3"))) double* new_mat_mul(double* A, int Am, int An, 
                  double* B, int Bm, int Bn){
     double *C;
     C = (double*)malloc(__SIZEOF_DOUBLE__*Am*Bn);
@@ -117,7 +117,7 @@ __global__ void gpu_matmul(double *a,double *b, double *c, int m, int n, int k)
     }
 } 
 
-int maxind(int k) {
+__attribute__((optimize("-O3"))) int maxind(int k) {
     int m = k+1;
 
     for (int i = k+2; i < N; i++){
@@ -129,7 +129,7 @@ int maxind(int k) {
     return m;
 }
 
-void update(int k, double t) {
+__attribute__((optimize("-O3"))) void update(int k, double t) {
     double ek_prev = e[k];
     e[k] = ek_prev + t;
 
@@ -145,7 +145,7 @@ void update(int k, double t) {
     }
 }
 
-void rotate(int k, int l, int i, int j, double c, double s,
+__attribute__((optimize("-O3"))) void rotate(int k, int l, int i, int j, double c, double s,
             bool eigenvectors){
     // double** mat1;
     // double** mat2;
@@ -251,7 +251,7 @@ void print_vector(double* A, int An) {
     cout << A[An-1] << "]" << endl;
 }
 
-void init_jacobi() {
+__attribute__((optimize("-O3"))) void init_jacobi() {
     E = (double**)malloc(__SIZEOF_POINTER__*N);
     for (int i=0; i<N; i++){
         E[i] = (double*)malloc(__SIZEOF_DOUBLE__*N);
@@ -274,21 +274,35 @@ void init_jacobi() {
     }
 }
 
-void Jacobi(double **input_matrix, int n, 
+__attribute__((optimize("-O3"))) void Jacobi(double **input_matrix, int n, 
             double **eigenvalues, double ***eigenvectors) {
     N = n;
     S = input_matrix;
 
     init_jacobi();
 
+    // float totaltime=0;
+
     while(state != 0){
         int m = 0;
+
+        // float computation_time1;
+        // cudaEvent_t start1, stop1;
+        // cudaEventCreate(&start1);
+        // cudaEventCreate(&stop1);
+        // cudaEventRecord(start1);
 
         for (int k=1; k<N-1; k++){
             if (fabs(S[k][ind[k]]) > fabs(S[m][ind[m]])){
                 m = k;
             }
         }
+
+        // cudaEventRecord(stop1);
+        // cudaEventSynchronize(stop1);
+        // cudaEventElapsedTime(&computation_time1, start1, stop1);
+        // // cout << "time for 1 loop: " << computation_time1 << endl;
+        // totaltime+=computation_time1;
 
         int k = m;
         int l = ind[m];
@@ -320,6 +334,8 @@ void Jacobi(double **input_matrix, int n,
 
     *eigenvalues = e;
     *eigenvectors = E;
+    // cout << "Total time for loop: "<<totaltime << endl;
+
 }
 
 // int main(){
@@ -347,11 +363,11 @@ void Jacobi(double **input_matrix, int n,
 // }
 
 // /*
-// 	*****************************************************
-// 		TODO -- You must implement this function
-// 	*****************************************************
+//  *****************************************************
+//      TODO -- You must implement this function
+//  *****************************************************
 // */
-void SVD_and_PCA (int M, 
+__attribute__((optimize("-O3"))) void SVD_and_PCA (int M, 
         int N, 
         double* D, 
         double** U, 
@@ -362,8 +378,8 @@ void SVD_and_PCA (int M,
         int retention) {
     // write your code here
 
-	double *d;
-	double *d_t;
+    double *d;
+    double *d_t;
     double **product, *eigenvalues, **eigenvectors;
     // double **v;
 
@@ -376,7 +392,7 @@ void SVD_and_PCA (int M,
 
 
     for(int i=0;i<M;i++){
-    	for(int j=0;j<N;j++) d[i*N+j] = D[i*N+j];
+        for(int j=0;j<N;j++) d[i*N+j] = D[i*N+j];
     }
 
     d_t = mat_transpose(d, M, N);
@@ -466,79 +482,79 @@ void SVD_and_PCA (int M,
     vector<double> eigenvals;
     for(int i=0; i<N; i++) eigenvals.pb(eigenvalues[i]);
 
-	vector<pair<double, int> > eigenv_index;
-	
-	for(int i=0; i<eigenvals.size(); i++){
-		eigenv_index.pb(make_pair(eigenvalues[i],i));
-	}
+    vector<pair<double, int> > eigenv_index;
+    
+    for(int i=0; i<eigenvals.size(); i++){
+        eigenv_index.pb(make_pair(eigenvalues[i],i));
+    }
 
-	sort(eigenv_index.begin(), eigenv_index.end());
+    sort(eigenv_index.begin(), eigenv_index.end());
 
-	int e = eigenv_index.size()-1;
-	
- 	for(int i=0;i<N;i++){
-		(*SIGMA)[i] = sqrt(eigenv_index[e].first);
-		e--;
-	}
+    int e = eigenv_index.size()-1;
+    
+    for(int i=0;i<N;i++){
+        (*SIGMA)[i] = sqrt(eigenv_index[e].first);
+        e--;
+    }
 
 
     // for(int i=0;i<N;i++) printf("%f\n", (*SIGMA)[i]);
 
     double *u = (double*)malloc(sizeof(double)*N*N);
-	// double **u = (double**)malloc(sizeof(double*)*N);
+    // double **u = (double**)malloc(sizeof(double*)*N);
  //    for (int i=0; i<N; i++)
  //        u[i] = (double*)malloc(sizeof(double)*N);
 
 
-	e = eigenv_index.size()-1;	
-	for(int j=0;j<N;j++){
-		int index = eigenv_index[e].second;
-		for(int i=0;i<N;i++){
-			u[i*N + j] = eigenvectors[i][index];
-		}
-		e--;
-	}
+    e = eigenv_index.size()-1;  
+    for(int j=0;j<N;j++){
+        int index = eigenv_index[e].second;
+        for(int i=0;i<N;i++){
+            u[i*N + j] = eigenvectors[i][index];
+        }
+        e--;
+    }
 
-	for(int j=0;j<N;j++){
-		for(int i=0;i<N;i++){
-			(*U)[i*N+j] = u[i*N + j];
-		}
-	}
-
-
-	// for(int j=0;j<N;j++){
-	// 	for(int i=0;i<N;i++){
-	// 		printf("%f ", (*U)[i*N+j]);
-	// 	}
-	// 	printf("\n");
-	// }
+    for(int j=0;j<N;j++){
+        for(int i=0;i<N;i++){
+            (*U)[i*N+j] = u[i*N + j];
+        }
+    }
 
 
-	// size N*M
+    // for(int j=0;j<N;j++){
+    //  for(int i=0;i<N;i++){
+    //      printf("%f ", (*U)[i*N+j]);
+    //  }
+    //  printf("\n");
+    // }
+
+
+    // size N*M
     double *sigma_invT = (double*)malloc(sizeof(double*)*N*M);
     // double **sigma_invT = (double**)malloc(sizeof(double*)*N);
     // for (int i=0; i<N; i++)
     //     sigma_invT[i] = (double*)malloc(sizeof(double)*M);
 
-	for(int i=0; i<N; i++){
-		for(int j=0; j<M; j++) sigma_invT[i*M + j]=0;
-	}
+    for(int i=0; i<N; i++){
+        for(int j=0; j<M; j++) sigma_invT[i*M + j]=0;
+    }
 
-	e = eigenv_index.size()-1;
+    e = eigenv_index.size()-1;
 
-	for(int i=0; i<N;i++){
-		if(eigenv_index[e].first<1e-5){
-			sigma_invT[i*M + i]= 0;
-		}
-		else{
-			sigma_invT[i*M + i]= 1/sqrt(eigenv_index[e].first);
-		}
-		e--;	
-	}
+    for(int i=0; i<N;i++){
+        if(eigenv_index[e].first<1e-5){
+            sigma_invT[i*M + i]= 0;
+        }
+        else{
+            sigma_invT[i*M + i]= 1/sqrt(eigenv_index[e].first);
+        }
+        e--;    
+    }
 
-	// double **temp = mat_mul(d, M, N, u, N, N);
-	// double **v = mat_mul(temp, M, N, sigma_invT, N, M);
-	// double **v_t = mat_transpose(v, M, M);
+    // double **temp = mat_mul(d, M, N, u, N, N);
+    // double **v = mat_mul(temp, M, N, sigma_invT, N, M);
+    // double **v_t = mat_transpose(v, M, M);
 ///////////////////////////////////////////////////////////////
     double *temp;
     temp = (double*)malloc(sizeof(double)*M*N);
@@ -604,44 +620,44 @@ void SVD_and_PCA (int M,
 
 
 
-	// for(int i=0; i<M; i++){
-	// 	for(int j=0; j<M; j++) printf("%f ", v_t[i][j]);
-	// 	printf("\n");
-	// }
+    // for(int i=0; i<M; i++){
+    //  for(int j=0; j<M; j++) printf("%f ", v_t[i][j]);
+    //  printf("\n");
+    // }
 
 
-	// for(int i=0; i<M; i++){
-	// 	for(int j=0; j<M; j++) (*V_T)[i*M+j] = v_t[i][j];
-	// }
+    // for(int i=0; i<M; i++){
+    //  for(int j=0; j<M; j++) (*V_T)[i*M+j] = v_t[i][j];
+    // }
 
 
     for(int i=0; i<M; i++){
         for(int j=0; j<M; j++) (*V_T)[i*M+j] = v[j*M + i];
     }
-	// for(int i=0; i<M; i++){
-	// 	for(int j=0; j<M; j++) printf("%f ", V_T[i][j]);
-	// 	printf("\n");
-	// }
+    // for(int i=0; i<M; i++){
+    //  for(int j=0; j<M; j++) printf("%f ", V_T[i][j]);
+    //  printf("\n");
+    // }
 
 
-	double num=0;
-	int k=0;
-	double sigmasqsum=0;
-	for(k=0; k<N; k++){
-		sigmasqsum += (*SIGMA)[k]*(*SIGMA)[k];
-	}
+    double num=0;
+    int k=0;
+    double sigmasqsum=0;
+    for(k=0; k<N; k++){
+        sigmasqsum += (*SIGMA)[k]*(*SIGMA)[k];
+    }
 
-	for(k=0; k<N; k++){
-		num += ((*SIGMA)[k]*(*SIGMA)[k])/sigmasqsum;
-		if(num >= retention/100.0){
-			break;
-		}
-	}
+    for(k=0; k<N; k++){
+        num += ((*SIGMA)[k]*(*SIGMA)[k])/sigmasqsum;
+        if(num >= retention/100.0){
+            break;
+        }
+    }
     
     *K = k+1;
 
     // double **newU;
-	// double **newU = (double**)malloc(sizeof(double*)*N*(k+1));
+    // double **newU = (double**)malloc(sizeof(double*)*N*(k+1));
     double *newU = (double*)malloc(sizeof(double)*N*(k+1));
     // double **newU = (double**)malloc(sizeof(double*)*N);
     // for (int i=0; i<N; i++)
@@ -649,16 +665,16 @@ void SVD_and_PCA (int M,
 
 
     for(int i=0; i<N; i++){
-    	for(int j=0;j<k+1;j++){
-    		newU[i*(k+1) + j] = (u)[i*N + j];
-    	}
+        for(int j=0;j<k+1;j++){
+            newU[i*(k+1) + j] = (u)[i*N + j];
+        }
     }
 
 
-	// for(int i=0; i<N; i++){
-	// 	for(int j=0; j<(k+1); j++) printf("%f ", newU[i][j]);
-	// 	printf("\n");
-	// }
+    // for(int i=0; i<N; i++){
+    //  for(int j=0; j<(k+1); j++) printf("%f ", newU[i][j]);
+    //  printf("\n");
+    // }
 
     // double **d_hat = (double**)malloc(sizeof(double*)*M);
     // for (int i=0; i<(k+1); i++)
@@ -698,13 +714,13 @@ void SVD_and_PCA (int M,
     
 ///////////////////////////////////////////////////////////////
 
-	*D_HAT = (double*) malloc(sizeof(double) * M*(k+1));
+    *D_HAT = (double*) malloc(sizeof(double) * M*(k+1));
 
 
-	for(int i=0; i<M; i++){
-    	for(int j=0;j<k+1;j++){
-    		(*D_HAT)[i*(k+1)+j] = d_hat[i*(k+1) + j];
-    	}
+    for(int i=0; i<M; i++){
+        for(int j=0;j<k+1;j++){
+            (*D_HAT)[i*(k+1)+j] = d_hat[i*(k+1) + j];
+        }
     }
 
 
