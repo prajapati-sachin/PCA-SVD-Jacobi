@@ -12,7 +12,7 @@
 using namespace std;
 
 #define TOLERANCE 0.001
-#define JACOBI_UPDATE_TOLERANCE 0.001
+#define JACOBI_UPDATE_TOLERANCE 0.00001
 #define FILENAME1 "testcase_1000_300"
 #define FILENAME2 "iris_stndardized"
 #define samples 150
@@ -184,14 +184,14 @@ __attribute__((optimize("-O3"))) void rotate(int k, int l, int i, int j, double 
     //     mat2[1][0] = S[i][j];
     // }
 
-    if (eigenvectors){
-        mat2_00 = E[i][k];
-        mat2_10 = E[i][l];
-    }
-    else {
-        mat2_00 = S[k][l];
-        mat2_10 = S[i][j];
-    }
+    // if (eigenvectors){
+    //     mat2_00 = E[i][k];
+    //     mat2_10 = E[i][l];
+    // }
+    // else {
+    //     mat2_00 = S[k][l];
+    //     mat2_10 = S[i][j];
+    // }
 
     // mat3_00 = (c*mat2_00) - (s*mat2_10);
     // mat3_10 = (s*mat2_00) + (c*mat2_10);
@@ -207,11 +207,25 @@ __attribute__((optimize("-O3"))) void rotate(int k, int l, int i, int j, double 
     //     S[i][j] = mat3[1][0];
     // }
 
+
+    // if (eigenvectors){
+    //     E[i][k] = (c*mat2_00) - (s*mat2_10);;
+    //     E[i][l] = (s*mat2_00) + (c*mat2_10);;
+    // }
+    // else{
+    //     S[k][l] = (c*mat2_00) - (s*mat2_10);;
+    //     S[i][j] = (s*mat2_00) + (c*mat2_10);;
+    // }
+
     if (eigenvectors){
+        mat2_00 = E[i][k];
+        mat2_10 = E[i][l];
         E[i][k] = (c*mat2_00) - (s*mat2_10);;
         E[i][l] = (s*mat2_00) + (c*mat2_10);;
     }
     else{
+        mat2_00 = S[k][l];
+        mat2_10 = S[i][j];
         S[k][l] = (c*mat2_00) - (s*mat2_10);;
         S[i][j] = (s*mat2_00) + (c*mat2_10);;
     }
@@ -280,12 +294,13 @@ __attribute__((optimize("-O3"))) void Jacobi(double **input_matrix, int n,
     S = input_matrix;
 
     init_jacobi();
+    int count=0;
 
     // float totaltime=0;
 
     while(state != 0){
         int m = 0;
-
+        count++;
         // float computation_time1;
         // cudaEvent_t start1, stop1;
         // cudaEventCreate(&start1);
@@ -320,13 +335,48 @@ __attribute__((optimize("-O3"))) void Jacobi(double **input_matrix, int n,
         update(k, -t);
         update(l, t);
 
-        for (int i=0; i<k; i++)  { rotate(i, k, i, l, c, s, false); }
-        for (int i=k+1; i<l; i++){ rotate(k, i, i, l, c, s, false); }
-        for (int i=l+1; i<N; i++)  { rotate(k, i, l, i, c, s, false); }
+        
+        for (int i=0; i<k; i++)  { 
+            // rotate(i, k, i, l, c, s, false);
+            double mat2_00 = S[i][k];
+            double mat2_10 = S[i][l];
+            S[i][k] = (c*mat2_00) - (s*mat2_10);;
+            S[i][l] = (s*mat2_00) + (c*mat2_10);;
+
+        }
+        
+        for (int i=k+1; i<l; i++){
+            // rotate(k, i, i, l, c, s, false);
+            double mat2_00 = S[k][i];
+            double mat2_10 = S[i][l];
+            S[k][i] = (c*mat2_00) - (s*mat2_10);;
+            S[i][l] = (s*mat2_00) + (c*mat2_10);;
+
+        }
+        
+        for (int i=l+1; i<N; i++) {
+            // rotate(k, i, l, i, c, s, false); 
+            double mat2_00 = S[k][i];
+            double mat2_10 = S[l][i];
+            S[k][i] = (c*mat2_00) - (s*mat2_10);;
+            S[l][i] = (s*mat2_00) + (c*mat2_10);;
+        }
 
         for (int i=0; i<N; i++){
-            rotate(k, l, i, i, c, s, true);
+            // rotate(k, l, i, i, c, s, true);
+            double mat2_00 = E[i][k];
+            double mat2_10 = E[i][l];
+            E[i][k] = (c*mat2_00) - (s*mat2_10);;
+            E[i][l] = (s*mat2_00) + (c*mat2_10);;
         }
+
+        // for (int i=0; i<k; i++)  { rotate(i, k, i, l, c, s, false); }
+        // for (int i=k+1; i<l; i++){ rotate(k, i, i, l, c, s, false); }
+        // for (int i=l+1; i<N; i++)  { rotate(k, i, l, i, c, s, false); }
+
+        // for (int i=0; i<N; i++){
+        //     rotate(k, l, i, i, c, s, true);
+        // }
 
         ind[k] = maxind(k);
         ind[l] = maxind(l);
@@ -335,7 +385,8 @@ __attribute__((optimize("-O3"))) void Jacobi(double **input_matrix, int n,
     *eigenvalues = e;
     *eigenvectors = E;
     // cout << "Total time for loop: "<<totaltime << endl;
-
+    cout << "Total iterations: "<<count << endl;
+    cout << "Changednowagain" << endl;
 }
 
 // int main(){
@@ -363,9 +414,9 @@ __attribute__((optimize("-O3"))) void Jacobi(double **input_matrix, int n,
 // }
 
 // /*
-//  *****************************************************
-//      TODO -- You must implement this function
-//  *****************************************************
+// 	*****************************************************
+// 		TODO -- You must implement this function
+// 	*****************************************************
 // */
 __attribute__((optimize("-O3"))) void SVD_and_PCA (int M, 
         int N, 
@@ -378,8 +429,8 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
         int retention) {
     // write your code here
 
-    double *d;
-    double *d_t;
+	double *d;
+	double *d_t;
     double **product, *eigenvalues, **eigenvectors;
     // double **v;
 
@@ -392,7 +443,7 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
 
 
     for(int i=0;i<M;i++){
-        for(int j=0;j<N;j++) d[i*N+j] = D[i*N+j];
+    	for(int j=0;j<N;j++) d[i*N+j] = D[i*N+j];
     }
 
     d_t = mat_transpose(d, M, N);
@@ -435,6 +486,10 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
     gpu_matmul<<<dimGrid, dimBlock>>>(gpu_a, gpu_b, gpu_c, N, M, N);
     cudaMemcpy(product1, gpu_c, sizeof(double)*N*N, cudaMemcpyDeviceToHost);
     cudaThreadSynchronize();
+
+    cudaFree(gpu_a);
+    cudaFree(gpu_b);
+    cudaFree(gpu_c);
 
     // for(int i=0;i<N;i++){
     //   for(int j=0;j<N;j++){
@@ -482,79 +537,79 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
     vector<double> eigenvals;
     for(int i=0; i<N; i++) eigenvals.pb(eigenvalues[i]);
 
-    vector<pair<double, int> > eigenv_index;
-    
-    for(int i=0; i<eigenvals.size(); i++){
-        eigenv_index.pb(make_pair(eigenvalues[i],i));
-    }
+	vector<pair<double, int> > eigenv_index;
+	
+	for(int i=0; i<eigenvals.size(); i++){
+		eigenv_index.pb(make_pair(eigenvalues[i],i));
+	}
 
-    sort(eigenv_index.begin(), eigenv_index.end());
+	sort(eigenv_index.begin(), eigenv_index.end());
 
-    int e = eigenv_index.size()-1;
-    
-    for(int i=0;i<N;i++){
-        (*SIGMA)[i] = sqrt(eigenv_index[e].first);
-        e--;
-    }
+	int e = eigenv_index.size()-1;
+	
+ 	for(int i=0;i<N;i++){
+		(*SIGMA)[i] = sqrt(eigenv_index[e].first);
+		e--;
+	}
 
 
     // for(int i=0;i<N;i++) printf("%f\n", (*SIGMA)[i]);
 
     double *u = (double*)malloc(sizeof(double)*N*N);
-    // double **u = (double**)malloc(sizeof(double*)*N);
+	// double **u = (double**)malloc(sizeof(double*)*N);
  //    for (int i=0; i<N; i++)
  //        u[i] = (double*)malloc(sizeof(double)*N);
 
 
-    e = eigenv_index.size()-1;  
-    for(int j=0;j<N;j++){
-        int index = eigenv_index[e].second;
-        for(int i=0;i<N;i++){
-            u[i*N + j] = eigenvectors[i][index];
-        }
-        e--;
-    }
+	e = eigenv_index.size()-1;	
+	for(int j=0;j<N;j++){
+		int index = eigenv_index[e].second;
+		for(int i=0;i<N;i++){
+			u[i*N + j] = eigenvectors[i][index];
+		}
+		e--;
+	}
 
-    for(int j=0;j<N;j++){
-        for(int i=0;i<N;i++){
-            (*U)[i*N+j] = u[i*N + j];
-        }
-    }
-
-
-    // for(int j=0;j<N;j++){
-    //  for(int i=0;i<N;i++){
-    //      printf("%f ", (*U)[i*N+j]);
-    //  }
-    //  printf("\n");
-    // }
+	for(int j=0;j<N;j++){
+		for(int i=0;i<N;i++){
+			(*U)[i*N+j] = u[i*N + j];
+		}
+	}
 
 
-    // size N*M
+	// for(int j=0;j<N;j++){
+	// 	for(int i=0;i<N;i++){
+	// 		printf("%f ", (*U)[i*N+j]);
+	// 	}
+	// 	printf("\n");
+	// }
+
+
+	// size N*M
     double *sigma_invT = (double*)malloc(sizeof(double*)*N*M);
     // double **sigma_invT = (double**)malloc(sizeof(double*)*N);
     // for (int i=0; i<N; i++)
     //     sigma_invT[i] = (double*)malloc(sizeof(double)*M);
 
-    for(int i=0; i<N; i++){
-        for(int j=0; j<M; j++) sigma_invT[i*M + j]=0;
-    }
+	for(int i=0; i<N; i++){
+		for(int j=0; j<M; j++) sigma_invT[i*M + j]=0;
+	}
 
-    e = eigenv_index.size()-1;
+	e = eigenv_index.size()-1;
 
-    for(int i=0; i<N;i++){
-        if(eigenv_index[e].first<1e-5){
-            sigma_invT[i*M + i]= 0;
-        }
-        else{
-            sigma_invT[i*M + i]= 1/sqrt(eigenv_index[e].first);
-        }
-        e--;    
-    }
+	for(int i=0; i<N;i++){
+		if(eigenv_index[e].first<1e-5){
+			sigma_invT[i*M + i]= 0;
+		}
+		else{
+			sigma_invT[i*M + i]= 1/sqrt(eigenv_index[e].first);
+		}
+		e--;	
+	}
 
-    // double **temp = mat_mul(d, M, N, u, N, N);
-    // double **v = mat_mul(temp, M, N, sigma_invT, N, M);
-    // double **v_t = mat_transpose(v, M, M);
+	// double **temp = mat_mul(d, M, N, u, N, N);
+	// double **v = mat_mul(temp, M, N, sigma_invT, N, M);
+	// double **v_t = mat_transpose(v, M, M);
 ///////////////////////////////////////////////////////////////
     double *temp;
     temp = (double*)malloc(sizeof(double)*M*N);
@@ -576,6 +631,10 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
     gpu_matmul<<<dimGrid1, dimBlock1>>>(gpu_a1, gpu_b1, gpu_c1, M, N, N);
     cudaMemcpy(temp, gpu_c1, sizeof(double)*M*N, cudaMemcpyDeviceToHost);
     cudaThreadSynchronize();
+
+    cudaFree(gpu_a1);
+    cudaFree(gpu_b1);
+    cudaFree(gpu_c1);
 
     // for(int i=0;i<N;i++){
     //   for(int j=0;j<N;j++){
@@ -608,6 +667,11 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
     cudaMemcpy(v, gpu_c2, sizeof(double)*M*M, cudaMemcpyDeviceToHost);
     cudaThreadSynchronize();
 
+    cudaFree(gpu_a2);
+    cudaFree(gpu_b2);
+    cudaFree(gpu_c2);
+
+
     // for(int i=0;i<N;i++){
     //   for(int j=0;j<N;j++){
     //       printf("%f ", (product1)[i*N+j]);
@@ -620,44 +684,44 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
 
 
 
-    // for(int i=0; i<M; i++){
-    //  for(int j=0; j<M; j++) printf("%f ", v_t[i][j]);
-    //  printf("\n");
-    // }
+	// for(int i=0; i<M; i++){
+	// 	for(int j=0; j<M; j++) printf("%f ", v_t[i][j]);
+	// 	printf("\n");
+	// }
 
 
-    // for(int i=0; i<M; i++){
-    //  for(int j=0; j<M; j++) (*V_T)[i*M+j] = v_t[i][j];
-    // }
+	// for(int i=0; i<M; i++){
+	// 	for(int j=0; j<M; j++) (*V_T)[i*M+j] = v_t[i][j];
+	// }
 
 
     for(int i=0; i<M; i++){
         for(int j=0; j<M; j++) (*V_T)[i*M+j] = v[j*M + i];
     }
-    // for(int i=0; i<M; i++){
-    //  for(int j=0; j<M; j++) printf("%f ", V_T[i][j]);
-    //  printf("\n");
-    // }
+	// for(int i=0; i<M; i++){
+	// 	for(int j=0; j<M; j++) printf("%f ", V_T[i][j]);
+	// 	printf("\n");
+	// }
 
 
-    double num=0;
-    int k=0;
-    double sigmasqsum=0;
-    for(k=0; k<N; k++){
-        sigmasqsum += (*SIGMA)[k]*(*SIGMA)[k];
-    }
+	double num=0;
+	int k=0;
+	double sigmasqsum=0;
+	for(k=0; k<N; k++){
+		sigmasqsum += (*SIGMA)[k]*(*SIGMA)[k];
+	}
 
-    for(k=0; k<N; k++){
-        num += ((*SIGMA)[k]*(*SIGMA)[k])/sigmasqsum;
-        if(num >= retention/100.0){
-            break;
-        }
-    }
+	for(k=0; k<N; k++){
+		num += ((*SIGMA)[k]*(*SIGMA)[k])/sigmasqsum;
+		if(num >= retention/100.0){
+			break;
+		}
+	}
     
     *K = k+1;
 
     // double **newU;
-    // double **newU = (double**)malloc(sizeof(double*)*N*(k+1));
+	// double **newU = (double**)malloc(sizeof(double*)*N*(k+1));
     double *newU = (double*)malloc(sizeof(double)*N*(k+1));
     // double **newU = (double**)malloc(sizeof(double*)*N);
     // for (int i=0; i<N; i++)
@@ -665,16 +729,16 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
 
 
     for(int i=0; i<N; i++){
-        for(int j=0;j<k+1;j++){
-            newU[i*(k+1) + j] = (u)[i*N + j];
-        }
+    	for(int j=0;j<k+1;j++){
+    		newU[i*(k+1) + j] = (u)[i*N + j];
+    	}
     }
 
 
-    // for(int i=0; i<N; i++){
-    //  for(int j=0; j<(k+1); j++) printf("%f ", newU[i][j]);
-    //  printf("\n");
-    // }
+	// for(int i=0; i<N; i++){
+	// 	for(int j=0; j<(k+1); j++) printf("%f ", newU[i][j]);
+	// 	printf("\n");
+	// }
 
     // double **d_hat = (double**)malloc(sizeof(double*)*M);
     // for (int i=0; i<(k+1); i++)
@@ -705,6 +769,11 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
     cudaMemcpy(d_hat, gpu_c3, sizeof(double)*M*(k+1), cudaMemcpyDeviceToHost);
     cudaThreadSynchronize();
 
+    cudaFree(gpu_a3);
+    cudaFree(gpu_b3);
+    cudaFree(gpu_c3);
+    
+
     // for(int i=0;i<N;i++){
     //   for(int j=0;j<N;j++){
     //       printf("%f ", (product1)[i*N+j]);
@@ -714,15 +783,13 @@ __attribute__((optimize("-O3"))) void SVD_and_PCA (int M,
     
 ///////////////////////////////////////////////////////////////
 
-    *D_HAT = (double*) malloc(sizeof(double) * M*(k+1));
+	*D_HAT = (double*) malloc(sizeof(double) * M*(k+1));
 
-
-    for(int i=0; i<M; i++){
-        for(int j=0;j<k+1;j++){
-            (*D_HAT)[i*(k+1)+j] = d_hat[i*(k+1) + j];
-        }
+	for(int i=0; i<M; i++){
+    	for(int j=0;j<k+1;j++){
+    		(*D_HAT)[i*(k+1)+j] = d_hat[i*(k+1) + j];
+    	}
     }
-
 
 }
 
