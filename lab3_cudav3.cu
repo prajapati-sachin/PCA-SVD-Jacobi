@@ -335,8 +335,8 @@ __attribute__((optimize("-O3"))) void Jacobi(double **input_matrix, int n,
         update(k, -t);
         update(l, t);
 
-        
-        for (int i=0; i<k; i++)  { 
+
+        for (int i=0; i<k; i++){ 
             // rotate(i, k, i, l, c, s, false);
             double mat2_00 = S[i][k];
             double mat2_10 = S[i][l];
@@ -354,7 +354,7 @@ __attribute__((optimize("-O3"))) void Jacobi(double **input_matrix, int n,
 
         }
         
-        for (int i=l+1; i<N; i++) {
+        for (int i=l+1; i<N; i++){
             // rotate(k, i, l, i, c, s, false); 
             double mat2_00 = S[k][i];
             double mat2_10 = S[l][i];
@@ -386,7 +386,7 @@ __attribute__((optimize("-O3"))) void Jacobi(double **input_matrix, int n,
     *eigenvectors = E;
     // cout << "Total time for loop: "<<totaltime << endl;
     cout << "Total iterations: "<<count << endl;
-    cout << "Changednowagain" << endl;
+    // cout << "Changednowagain" << endl;
 }
 
 // int main(){
